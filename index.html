@@ -27,67 +27,78 @@
   <table id="results"></table>
 
   <script>
-    const endpoint = "https://script.google.com/macros/s/AKfycbxqiejSj2Y7bLLJBHf6fE_7vfotLDSukaR6evUkbFXoZwufIa1m5p3_Pc0iwpmYYJZZ/exec";
+    const endpoint = "https://script.google.com/macros/s/TU_ENDPOINT/exec";
 
-    async function cargarHojas() {
-      const res = await fetch(`${endpoint}?action=getSheets`);
-      const data = await res.json();
-      const sel = document.getElementById("sheet");
-      sel.innerHTML = "";
-      data.sheets.forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      });
-      cargarColumnas();
+    function addScript(src) {
+      const script = document.createElement("script");
+      script.src = src;
+      document.body.appendChild(script);
     }
 
-    async function cargarColumnas() {
+    function cargarHojas() {
+      window.handleSheets = function (data) {
+        const sel = document.getElementById("sheet");
+        sel.innerHTML = "";
+        data.sheets.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        });
+        cargarColumnas();
+      };
+      addScript(`${endpoint}?action=getSheets&callback=handleSheets`);
+    }
+
+    function cargarColumnas() {
       const hoja = document.getElementById("sheet").value;
-      const res = await fetch(`${endpoint}?action=getHeaders&sheet=${encodeURIComponent(hoja)}`);
-      const data = await res.json();
-      const sel = document.getElementById("column");
-      sel.innerHTML = "";
-      data.headers.forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      });
+      window.handleHeaders = function (data) {
+        const sel = document.getElementById("column");
+        sel.innerHTML = "";
+        data.headers.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        });
+      };
+      addScript(`${endpoint}?action=getHeaders&sheet=${encodeURIComponent(hoja)}&callback=handleHeaders`);
     }
 
-    async function buscar() {
+    function buscar() {
       const hoja = document.getElementById("sheet").value;
       const columna = document.getElementById("column").value;
       const valor = document.getElementById("value").value;
-      const res = await fetch(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=${encodeURIComponent(columna)}&value=${encodeURIComponent(valor)}`);
-      const data = await res.json();
-      const table = document.getElementById("results");
-      table.innerHTML = "";
 
-      if (data.error) {
-        table.innerHTML = `<tr><td colspan="10">${data.error}</td></tr>`;
-        return;
-      }
+      window.handleSearch = function (data) {
+        const table = document.getElementById("results");
+        table.innerHTML = "";
 
-      const headerRow = document.createElement("tr");
-      data.headers.forEach(h => {
-        const th = document.createElement("th");
-        th.textContent = h;
-        headerRow.appendChild(th);
-      });
-      table.appendChild(headerRow);
+        if (data.error) {
+          table.innerHTML = `<tr><td colspan="10">${data.error}</td></tr>`;
+          return;
+        }
 
-      data.results.forEach(row => {
-        const tr = document.createElement("tr");
-        row.forEach(cell => {
-          const td = document.createElement("td");
-          td.textContent = cell;
-          tr.appendChild(td);
+        const headerRow = document.createElement("tr");
+        data.headers.forEach(h => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
         });
-        table.appendChild(tr);
-      });
+        table.appendChild(headerRow);
+
+        data.results.forEach(row => {
+          const tr = document.createElement("tr");
+          row.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          table.appendChild(tr);
+        });
+      };
+
+      addScript(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=${encodeURIComponent(columna)}&value=${encodeURIComponent(valor)}&callback=handleSearch`);
     }
 
     cargarHojas();
