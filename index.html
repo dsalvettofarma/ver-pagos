@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Buscador de Pagos</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, select, button { margin: 5px; padding: 5px; }
+    table { margin-top: 20px; border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px; }
+  </style>
+</head>
+<body>
+  <h2>Buscador de Pagos</h2>
+
+  <label>Hoja:</label>
+  <input id="sheet" placeholder="Enero"><br>
+
+  <label>Columna:</label>
+  <input id="column" placeholder="Id usuario"><br>
+
+  <label>Valor:</label>
+  <input id="value" placeholder="12345678"><br>
+
+  <button onclick="buscar()">Buscar</button>
+
+  <table id="results"></table>
+
+  <script>
+    const endpoint = "https://script.google.com/macros/s/AKfycbxqiejSj2Y7bLLJBHf6fE_7vfotLDSukaR6evUkbFXoZwufIa1m5p3_Pc0iwpmYYJZZ/exec";
+
+    function buscar() {
+      const sheet = document.getElementById("sheet").value;
+      const column = document.getElementById("column").value;
+      const value = document.getElementById("value").value;
+
+      const url = `${endpoint}?sheet=${encodeURIComponent(sheet)}&column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const table = document.getElementById("results");
+          table.innerHTML = "";
+
+          if (data.error) {
+            table.innerHTML = `<tr><td colspan="10">${data.error}</td></tr>`;
+            return;
+          }
+
+          // Crear cabecera
+          const headerRow = document.createElement("tr");
+          data.headers.forEach(h => {
+            const th = document.createElement("th");
+            th.textContent = h;
+            headerRow.appendChild(th);
+          });
+          table.appendChild(headerRow);
+
+          // Crear filas de resultados
+          data.results.forEach(row => {
+            const tr = document.createElement("tr");
+            row.forEach(cell => {
+              const td = document.createElement("td");
+              td.textContent = cell;
+              tr.appendChild(td);
+            });
+            table.appendChild(tr);
+          });
+        });
+    }
+  </script>
+</body>
+</html>
