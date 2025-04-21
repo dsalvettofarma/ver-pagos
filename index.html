@@ -5,7 +5,7 @@
   <title>Buscador de Pagos</title>
   <style>
     body { font-family: Arial; padding: 20px; }
-    input, select, button { margin: 5px; padding: 5px; }
+    select, input, button { margin: 5px; padding: 5px; }
     table { margin-top: 20px; border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 4px; }
   </style>
@@ -14,13 +14,13 @@
   <h2>Buscador de Pagos</h2>
 
   <label>Hoja:</label>
-  <input id="sheet" placeholder="Enero"><br>
+  <select id="sheet" onchange="cargarColumnas()"></select><br>
 
   <label>Columna:</label>
-  <input id="column" placeholder="Id usuario"><br>
+  <select id="column"></select><br>
 
   <label>Valor:</label>
-  <input id="value" placeholder="12345678"><br>
+  <input id="value"><br>
 
   <button onclick="buscar()">Buscar</button>
 
@@ -29,45 +29,68 @@
   <script>
     const endpoint = "https://script.google.com/macros/s/AKfycbxqiejSj2Y7bLLJBHf6fE_7vfotLDSukaR6evUkbFXoZwufIa1m5p3_Pc0iwpmYYJZZ/exec";
 
-    function buscar() {
-      const sheet = document.getElementById("sheet").value;
-      const column = document.getElementById("column").value;
-      const value = document.getElementById("value").value;
-
-      const url = `${endpoint}?sheet=${encodeURIComponent(sheet)}&column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}`;
-
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const table = document.getElementById("results");
-          table.innerHTML = "";
-
-          if (data.error) {
-            table.innerHTML = `<tr><td colspan="10">${data.error}</td></tr>`;
-            return;
-          }
-
-          // Crear cabecera
-          const headerRow = document.createElement("tr");
-          data.headers.forEach(h => {
-            const th = document.createElement("th");
-            th.textContent = h;
-            headerRow.appendChild(th);
-          });
-          table.appendChild(headerRow);
-
-          // Crear filas de resultados
-          data.results.forEach(row => {
-            const tr = document.createElement("tr");
-            row.forEach(cell => {
-              const td = document.createElement("td");
-              td.textContent = cell;
-              tr.appendChild(td);
-            });
-            table.appendChild(tr);
-          });
-        });
+    async function cargarHojas() {
+      const res = await fetch(`${endpoint}?action=getSheets`);
+      const data = await res.json();
+      const sel = document.getElementById("sheet");
+      sel.innerHTML = "";
+      data.sheets.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      cargarColumnas();
     }
+
+    async function cargarColumnas() {
+      const hoja = document.getElementById("sheet").value;
+      const res = await fetch(`${endpoint}?action=getHeaders&sheet=${encodeURIComponent(hoja)}`);
+      const data = await res.json();
+      const sel = document.getElementById("column");
+      sel.innerHTML = "";
+      data.headers.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function buscar() {
+      const hoja = document.getElementById("sheet").value;
+      const columna = document.getElementById("column").value;
+      const valor = document.getElementById("value").value;
+      const res = await fetch(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=${encodeURIComponent(columna)}&value=${encodeURIComponent(valor)}`);
+      const data = await res.json();
+      const table = document.getElementById("results");
+      table.innerHTML = "";
+
+      if (data.error) {
+        table.innerHTML = `<tr><td colspan="10">${data.error}</td></tr>`;
+        return;
+      }
+
+      const headerRow = document.createElement("tr");
+      data.headers.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      data.results.forEach(row => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => {
+          const td = document.createElement("td");
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+    }
+
+    cargarHojas();
   </script>
 </body>
 </html>
