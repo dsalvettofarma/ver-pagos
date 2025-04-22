@@ -335,95 +335,99 @@
     }
   
     function buscar() {
-      const hoja = document.getElementById("sheet").value;
-      const columna = document.getElementById("column").value;
-      const valor = document.getElementById("value").value;
-      const canal = document.getElementById("canal").value;
-      const matchType = document.getElementById("matchType").value;
-      const estado = document.getElementById("estado");
-      const table = document.getElementById("results");
+  const estado = document.getElementById("estado");
+  const table = document.getElementById("results");
 
-      let start = Date.now();
-      let timer = setInterval(() => {
-        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-        estado.innerText = `⏳ Buscando... ${elapsed}s`;
-      }, 200);
+  // 💡 VERIFICAMOS SI ESTÁ PRECARGADO
+  if (!cachedData || !cachedHeaders) {
+    estado.innerText = "⚠️ Precargá primero una hoja para usar esta opción.";
+    table.innerHTML = ""; // Limpiamos resultados previos si los hubiera
+    return;
+  }
 
-      const mostrarResultados = (data) => {
-        clearInterval(timer);
-        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+  // 👇 Resto de tu código actual va aquí, sin tocar nada
+  const hoja = document.getElementById("sheet").value;
+  const columna = document.getElementById("column").value;
+  const valor = document.getElementById("value").value;
+  const canal = document.getElementById("canal").value;
+  const matchType = document.getElementById("matchType").value;
 
-        const headersOrdenados = ordenarHeaders(data.headers);
-        const idxs = headersOrdenados.map(h => data.headers.indexOf(h));
-        const comercioIdx = data.headers.indexOf("Comercio");
-        const colIdx = data.headers.indexOf(columna);
-        const busqueda = valor.toLowerCase();
+  let start = Date.now();
+  let timer = setInterval(() => {
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    estado.innerText = `⏳ Buscando... ${elapsed}s`;
+  }, 200);
 
-        const resultadosFiltrados = data.results.filter(row => {
-          const celda = (row[colIdx] || "").toString().toLowerCase();
-          const coincide = matchType === "exact" ? celda === busqueda : celda.includes(busqueda);
-          const comercioVal = (row[comercioIdx] || "").trim();
-          const canalCoincide = canal ? comercioVal === canal : true;
-          return coincide && canalCoincide;
-        });
+  const mostrarResultados = (data) => {
+    clearInterval(timer);
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-        const total = resultadosFiltrados.length;
-        estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
+    const headersOrdenados = ordenarHeaders(data.headers);
+    const idxs = headersOrdenados.map(h => data.headers.indexOf(h));
+    const comercioIdx = data.headers.indexOf("Comercio");
+    const colIdx = data.headers.indexOf(columna);
+    const busqueda = valor.toLowerCase();
 
-        table.innerHTML = "";
-        const headerRow = document.createElement("tr");
-        const thIndex = document.createElement("th");
-        thIndex.textContent = "#";
-        thIndex.className = "col-index";
-        headerRow.appendChild(thIndex);
+    const resultadosFiltrados = data.results.filter(row => {
+      const celda = (row[colIdx] || "").toString().toLowerCase();
+      const coincide = matchType === "exact" ? celda === busqueda : celda.includes(busqueda);
+      const comercioVal = (row[comercioIdx] || "").trim();
+      const canalCoincide = canal ? comercioVal === canal : true;
+      return coincide && canalCoincide;
+    });
 
-        headersOrdenados.forEach(h => {
-          const th = document.createElement("th");
-          th.textContent = h;
-          headerRow.appendChild(th);
-        });
-        table.appendChild(headerRow);
+    const total = resultadosFiltrados.length;
+    estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
 
-        resultadosFiltrados.forEach((row, i) => {
-          const tr = document.createElement("tr");
-          const tdIndex = document.createElement("td");
-          tdIndex.textContent = i + 1;
-          tdIndex.className = "col-index";
-          tr.appendChild(tdIndex);
+    table.innerHTML = "";
+    const headerRow = document.createElement("tr");
+    const thIndex = document.createElement("th");
+    thIndex.textContent = "#";
+    thIndex.className = "col-index";
+    headerRow.appendChild(thIndex);
 
-          idxs.forEach(j => {
-            const td = document.createElement("td");
-            let valor = row[j] || "";
-            if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
-              valor = ajustarYFormatear(valor);
-            }
-            td.textContent = valor;
+    headersOrdenados.forEach(h => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
 
-            // **Aquí agregamos la lógica para cambiar el color del estado**
-            if (cachedHeaders[j] === "Estado") {
-              if (valor.toLowerCase() === "rechazado") {
-                td.style.color = "#a94442"; // Rojo suave
-                td.style.fontWeight = "bold"; // Opcional: para que resalte un poco más
-              } else if (valor.toLowerCase() === "autorizado") {
-                td.style.color = "#2e7d32"; // Verde suave
-                td.style.fontWeight = "bold"; // Opcional
-              }
-            }
+    resultadosFiltrados.forEach((row, i) => {
+      const tr = document.createElement("tr");
+      const tdIndex = document.createElement("td");
+      tdIndex.textContent = i + 1;
+      tdIndex.className = "col-index";
+      tr.appendChild(tdIndex);
 
-            tr.appendChild(td);
-          });
-          table.appendChild(tr);
-        });
-      };
+      idxs.forEach(j => {
+        const td = document.createElement("td");
+        let valor = row[j] || "";
+        if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+          valor = ajustarYFormatear(valor);
+        }
+        td.textContent = valor;
 
-      if (cachedData && cachedHeaders) {
-        mostrarResultados({ headers: cachedHeaders, results: cachedData });
-        return;
-      }
+        // Colorear estado si aplica
+        if (cachedHeaders[j] === "Estado") {
+          if (valor.toLowerCase() === "rechazado") {
+            td.style.color = "#a94442";
+            td.style.fontWeight = "bold";
+          } else if (valor.toLowerCase() === "autorizado") {
+            td.style.color = "#2e7d32";
+            td.style.fontWeight = "bold";
+          }
+        }
 
-      window.handleSearch = mostrarResultados;
-      addScript(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=${encodeURIComponent(columna)}&value=${encodeURIComponent(valor)}&matchType=${matchType}&callback=handleSearch`);
-    }
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+  };
+
+  mostrarResultados({ headers: cachedHeaders, results: cachedData });
+}
+
   
     function mostrarUltimo() {
       const estado = document.getElementById("estado");
@@ -567,11 +571,12 @@
     estado.innerText = `📑 Anulados encontrados: ${anulados.length}`;
   }
   document.getElementById("value").addEventListener("keydown", function(event) {
-      if (event.key === "Enter") {
-        event.preventDefault(); // Evita el comportamiento por defecto del Enter
-        buscar(); // Llama a la función de búsqueda
-      }
-    });
+  if (event.key === "Enter") {
+    event.preventDefault(); // Evita el comportamiento por defecto del Enter
+    buscar(); // Llama a la función de búsqueda
+  }
+});
+
     cargarHojas();
   </script>
   
