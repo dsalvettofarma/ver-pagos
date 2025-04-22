@@ -68,10 +68,15 @@
       background-color: #003f7d;
     }
 
-    .estado {
+    #estado {
       font-style: italic;
       color: #555;
       margin-bottom: 10px;
+    }
+    .mensaje-info{
+        font-style: italic;
+        color: #555;
+        margin-bottom: 10px;
     }
 
     table {
@@ -206,7 +211,7 @@
     </div>      
   </div>
   <div class="mensaje-acciones">
-    <p class="estado">Recordá precargar la hoja para mejorar tiempos de búsqueda y habilitar todas las funciones</p>
+    <p class="mensaje-info">Recordá precargar la hoja para mejorar tiempos de búsqueda y habilitar todas las funciones</p>
   </div>
   <div class="acciones">
     <button onclick="window.open('https://docs.google.com/spreadsheets/d/1SBniJctF3j2nMt4M1IQWFkvjsKhCqJ_h6kqEtcvGdsg/edit', '_blank')">📄 Ver hoja</button>
@@ -217,7 +222,7 @@
     <button class="button-buscar" onclick="buscar()">🔍 Buscar</button>
   </div>
   
-  <div class="estado"></div>
+  <div id="estado"></div>
   <table id="results"></table>
 
   <script>
