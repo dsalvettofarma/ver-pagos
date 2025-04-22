@@ -20,7 +20,7 @@
 
     h2 {
       font-size: 28px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       color: #0052a1;
     }
 
@@ -28,7 +28,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 20px;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       background: #fff;
       padding: 20px;
       border-radius: 12px;
@@ -49,6 +49,10 @@
       border-radius: 6px;
       box-sizing: border-box;
     }
+    .acciones button {
+        width: auto;
+    }
+
 
     button {
       background-color: #0052a1;
@@ -86,9 +90,9 @@
     }
 
     th {
-        background-color: #dbeeff;
-        color: #003f7d;
         font-weight: 600;
+        background-color: #f3faff;
+        color: #004080;
     }
 
     .botonera {
@@ -106,6 +110,45 @@
         text-align: center;
         width: 40px;
     }
+
+    th, td {
+        white-space: nowrap;       /* No dividir texto en varias líneas */
+        overflow: hidden;
+        text-overflow: ellipsis;   /* Opcional: pone "..." si no entra */
+    }
+
+    table {
+        table-layout: auto !important;  /* Permite ancho según contenido */
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .acciones {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: white;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .acciones button {
+        padding: 10px 16px;
+        font-weight: bold;
+        background: #0052a1;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .acciones button:hover {
+        background: #003f80;
+    }
+
+
 
     @media (max-width: 600px) {
       .container {
@@ -147,25 +190,40 @@
         <option value="FARMASHOP">Web</option>
         <option value="FARMASHOP_APP">App</option>
       </select>
-    </div>
-
-    <div class="botonera">
-        <button onclick="buscar()">🔎 Buscar</button>
-        <button onclick="precargar()">⚡ Precargar hoja</button>
-      </div>
-      
-      
+    </div>      
   </div>
-
+  <div class="acciones">
+    <button onclick="window.open('https://docs.google.com/spreadsheets/d/1SBniJctF3j2nMt4M1IQWFkvjsKhCqJ_h6kqEtcvGdsg/edit', '_blank')">📄 Ver hoja</button>
+    <button onclick="mostrarUltimo()">🕒 Último registro</button>
+    <button onclick="analizarAnulados()">🧾 Pagos anulados</button>
+    <button onclick="analizarErrores()">📊 Pagos rechazados</button>
+    <button onclick="precargar()">🔄 Precargar hoja</button>
+    <button onclick="buscar()">🔍 Buscar</button>
+  </div>
+  
   <div id="estado"></div>
   <table id="results"></table>
 
   <script>
     const endpoint = "https://script.google.com/macros/s/AKfycbxqiejSj2Y7bLLJBHf6fE_7vfotLDSukaR6evUkbFXoZwufIa1m5p3_Pc0iwpmYYJZZ/exec";
     const prioridad = ["Id usuario", "Nombre", "Email de usuario"];
+    const ocultar = ["Id (Auth-conf)", "Propina", "Ley que aplico", "Devolucion de impuesto", "Codigo de autorizacion", "Moneda"];
   
     let cachedData = null;
     let cachedHeaders = null;
+  
+    function ajustarYFormatear(fechaIso) {
+      const fecha = new Date(fechaIso);
+      if (isNaN(fecha)) return fechaIso;
+      fecha.setHours(fecha.getHours() - 4); // Ajuste UTC-3
+      const yyyy = fecha.getFullYear();
+      const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dd = String(fecha.getDate()).padStart(2, "0");
+      const hh = String(fecha.getHours()).padStart(2, "0");
+      const min = String(fecha.getMinutes()).padStart(2, "0");
+      const ss = String(fecha.getSeconds()).padStart(2, "0");
+      return `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
+    }
   
     function addScript(src) {
       document.querySelectorAll("script[data-temp]").forEach(s => s.remove());
@@ -176,8 +234,9 @@
     }
   
     function ordenarHeaders(headers) {
-      const principales = prioridad.filter(h => headers.includes(h));
-      const otros = headers.filter(h => !principales.includes(h));
+      const visibles = headers.filter(h => !ocultar.includes(h));
+      const principales = prioridad.filter(h => visibles.includes(h));
+      const otros = visibles.filter(h => !principales.includes(h));
       return [...principales, ...otros];
     }
   
@@ -215,23 +274,24 @@
     function precargar() {
       const hoja = document.getElementById("sheet").value;
       const estado = document.getElementById("estado");
-  
       let start = Date.now();
-      estado.innerText = "⏳ Precargando datos...";
+      let timer = setInterval(() => {
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+        estado.innerText = `⏳ Precargando datos... ${elapsed}s`;
+      }, 200);
   
       window.handlePrecache = function (data) {
+        clearInterval(timer);
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
         if (data.error) {
           cachedData = null;
           estado.innerText = `❌ Error: ${data.error}`;
           return;
         }
-  
         cachedHeaders = data.headers;
         cachedData = data.results;
         estado.innerText = `✅ Hoja precargada en ${elapsed}s • ${cachedData.length} registros`;
       };
-  
       addScript(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=todos&value=__all__&callback=handlePrecache`);
     }
   
@@ -277,7 +337,6 @@
         thIndex.textContent = "#";
         thIndex.className = "col-index";
         headerRow.appendChild(thIndex);
-
   
         headersOrdenados.forEach(h => {
           const th = document.createElement("th");
@@ -289,13 +348,17 @@
         resultadosFiltrados.forEach((row, i) => {
           const tr = document.createElement("tr");
           const tdIndex = document.createElement("td");
-            tdIndex.textContent = i + 1;
-            tdIndex.className = "col-index";
-            tr.appendChild(tdIndex);
-
+          tdIndex.textContent = i + 1;
+          tdIndex.className = "col-index";
+          tr.appendChild(tdIndex);
+  
           idxs.forEach(j => {
             const td = document.createElement("td");
-            td.textContent = row[j] || "";
+            let valor = row[j] || "";
+            if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+              valor = ajustarYFormatear(valor);
+            }
+            td.textContent = valor;
             tr.appendChild(td);
           });
           table.appendChild(tr);
@@ -303,17 +366,147 @@
       };
   
       if (cachedData && cachedHeaders) {
-        mostrarResultados({
-          headers: cachedHeaders,
-          results: cachedData
-        });
+        mostrarResultados({ headers: cachedHeaders, results: cachedData });
         return;
       }
   
       window.handleSearch = mostrarResultados;
-  
       addScript(`${endpoint}?action=search&sheet=${encodeURIComponent(hoja)}&column=${encodeURIComponent(columna)}&value=${encodeURIComponent(valor)}&matchType=${matchType}&callback=handleSearch`);
     }
+  
+    function mostrarUltimo() {
+      const estado = document.getElementById("estado");
+      const table = document.getElementById("results");
+  
+      if (!cachedData || !cachedHeaders) {
+        estado.innerText = "⚠️ Precargá primero una hoja para usar esta opción.";
+        return;
+      }
+  
+      const fechaIdx = cachedHeaders.findIndex(h => h.toLowerCase().includes("fecha") && !h.toLowerCase().includes("anulacion"));
+      if (fechaIdx === -1) {
+        estado.innerText = "❌ No se encontró columna de fecha válida.";
+        return;
+      }
+  
+      const filasConFechas = cachedData
+        .map(row => {
+          const raw = row[fechaIdx];
+          const fecha = new Date(raw);
+          return isNaN(fecha) ? null : { row, fecha };
+        })
+        .filter(Boolean);
+  
+      if (filasConFechas.length === 0) {
+        estado.innerText = "⚠️ No se encontraron fechas válidas.";
+        return;
+      }
+  
+      const { row: ultima, fecha } = filasConFechas.sort((a, b) => b.fecha - a.fecha)[0];
+      estado.innerText = `🕒 Último pago registrado: ${ajustarYFormatear(fecha)}`;
+  
+      const headersOrdenados = ordenarHeaders(cachedHeaders);
+      const idxs = headersOrdenados.map(h => cachedHeaders.indexOf(h));
+      table.innerHTML = "";
+  
+      const headerRow = document.createElement("tr");
+      const thIndex = document.createElement("th");
+      thIndex.textContent = "#";
+      thIndex.className = "col-index";
+      headerRow.appendChild(thIndex);
+  
+      headersOrdenados.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+  
+      const tr = document.createElement("tr");
+      const tdIndex = document.createElement("td");
+      tdIndex.textContent = "1";
+      tdIndex.className = "col-index";
+      tr.appendChild(tdIndex);
+  
+      idxs.forEach(j => {
+        const td = document.createElement("td");
+        let valor = ultima[j] || "";
+        if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+          valor = ajustarYFormatear(valor);
+        }
+        td.textContent = valor;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    }
+
+    function analizarErrores() {
+    if (!cachedData || !cachedHeaders) return alert("Primero precargá una hoja");
+
+    const estado = document.getElementById("estado");
+    const table = document.getElementById("results");
+    const estadoIdx = cachedHeaders.indexOf("Estado");
+    const mensajeIdx = cachedHeaders.indexOf("Mensaje de respuesta");
+    const canalIdx = cachedHeaders.indexOf("Comercio");
+    const autorizadorIdx = cachedHeaders.indexOf("Autorizador");
+
+    const errores = cachedData.filter(row => (row[estadoIdx] || "").toLowerCase() === "rechazado");
+
+    const resumen = {};
+    errores.forEach(row => {
+      const msg = row[mensajeIdx] || "(sin mensaje)";
+      const canal = row[canalIdx] || "(desconocido)";
+      const autorizador = row[autorizadorIdx] || "(sin autorizador)";
+      const clave = msg;
+      if (!resumen[clave]) resumen[clave] = {};
+      if (!resumen[clave][autorizador]) resumen[clave][autorizador] = { total: 0, web: 0, app: 0 };
+      resumen[clave][autorizador].total++;
+      if (canal.includes("APP")) resumen[clave][autorizador].app++;
+      else resumen[clave][autorizador].web++;
+    });
+
+    let resumenHTML = `<table style="max-width:700px"><tr><th class='col-index'>#</th><th>Mensaje</th><th>Autorizador</th><th>Total</th><th>Web</th><th>App</th></tr>`;
+    let index = 1;
+    Object.entries(resumen)
+      .flatMap(([msg, auts]) => Object.entries(auts).map(([aut, r]) => ({ msg, aut, ...r })))
+      .sort((a, b) => b.total - a.total)
+      .forEach((entry, i) => {
+        resumenHTML += `<tr><td class='col-index'>${i + 1}</td><td>${entry.msg}</td><td>${entry.aut}</td><td>${entry.total}</td><td>${entry.web}</td><td>${entry.app}</td></tr>`;
+      });
+    
+    resumenHTML += `</table>`;
+
+    table.innerHTML = resumenHTML;
+    estado.innerText = `📊 Rechazos encontrados: ${errores.length}`;
+  }
+   
+
+  function analizarAnulados() {
+    if (!cachedData || !cachedHeaders) return alert("Primero precargá una hoja");
+
+    const estado = document.getElementById("estado");
+    const table = document.getElementById("results");
+    const estadoIdx = cachedHeaders.indexOf("Estado");
+    const canalIdx = cachedHeaders.indexOf("Comercio");
+
+    const anulados = cachedData.filter(row => (row[estadoIdx] || "").toLowerCase() === "anulado");
+
+    const resumen = {};
+    anulados.forEach(row => {
+      const canal = row[canalIdx] || "(desconocido)";
+      if (!resumen[canal]) resumen[canal] = 0;
+      resumen[canal]++;
+    });
+
+    let resumenHTML = `<table style="max-width:400px"><tr><th class='col-index'>#</th><th>Canal</th><th>Total</th></tr>`;
+    Object.entries(resumen).sort((a, b) => b[1] - a[1]).forEach(([canal, total], i) => {
+      resumenHTML += `<tr><td class='col-index'>${i + 1}</td><td>${canal}</td><td>${total}</td></tr>`;
+    });
+    resumenHTML += `</table>`;
+
+    table.innerHTML = resumenHTML;
+    estado.innerText = `📑 Anulados encontrados: ${anulados.length}`;
+  }
   
     cargarHojas();
   </script>
