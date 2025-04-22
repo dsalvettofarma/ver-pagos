@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <title>Buscador de Pagos</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1995/1995616.png" type="image/png">
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
+  
   <style>
     * {
   margin: 0;
@@ -169,15 +168,6 @@
         margin-left: 15px;
         }
 
-
-        th {
-        cursor: grab;
-        }
-
-        .sortable-ghost {
-        background-color: #ffeeba !important;
-        }
-
     
     @media (max-width: 600px) {
       .container {
@@ -187,7 +177,12 @@
   </style>
 </head>
 <body>
-  <h2>Buscador de Pagos</h2>
+  <h2 style="display: flex; align-items: center; gap: 10px;">
+    Buscador de Pagos
+    <img src="https://cdn-icons-png.flaticon.com/512/1995/1995616.png" alt="Ícono" style="width: 50 px; height: 50px;">
+    
+  </h2>
+  
 
   <div class="container">
     <div>
@@ -467,24 +462,7 @@
     tbody.appendChild(tr);
   });
 
-  // Activar drag & drop
-  Sortable.create(headerRow, {
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    onEnd: function (evt) {
-      const oldIndex = evt.oldIndex - 1;
-      const newIndex = evt.newIndex - 1;
-
-      if (oldIndex < 0 || newIndex < 0) return;
-
-      const rows = table.querySelectorAll("tbody tr");
-      rows.forEach(row => {
-        const cells = Array.from(row.children);
-        const moved = cells.splice(oldIndex + 1, 1)[0];
-        row.insertBefore(moved, row.children[newIndex + 1] || null);
-      });
-    }
-  });
+  
 };
 
 
