@@ -229,7 +229,7 @@
     <button onclick="mostrarUltimo()">🕒 Último registro</button>
     <button onclick="analizarAnulados()">🧾 Pagos anulados</button>
     <button onclick="analizarErrores()">📊 Pagos rechazados</button>
-    <button onclick="precargar()">🔄 Precargar hoja</button>
+    <button id="btnPrecargar" onclick="precargar()" disabled>🔄 Precargar hoja</button>
     <button class="button-buscar" onclick="buscar()">🔍 Buscar</button>
   </div>
   
@@ -291,19 +291,28 @@
     }
   
     function cargarHojas() {
-      window.handleSheets = function (data) {
-        const sel = document.getElementById("sheet");
-        sel.innerHTML = "";
-        data.sheets.forEach(name => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          sel.appendChild(opt);
-        });
-        cargarColumnas();
-      };
-      addScript(`${endpoint}?action=getSheets&callback=handleSheets`);
-    }
+  window.handleSheets = function (data) {
+    const sel = document.getElementById("sheet");
+    sel.innerHTML = "";
+
+    data.sheets.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+
+    cargarColumnas();
+    
+    // ✅ Activar botón luego de cargar hojas
+    document.getElementById("btnPrecargar").disabled = false;
+  };
+
+  // 🔒 Desactivar botón mientras carga
+  document.getElementById("btnPrecargar").disabled = true;
+  addScript(`${endpoint}?action=getSheets&callback=handleSheets`);
+}
+
   
     function cargarColumnas() {
       const hoja = document.getElementById("sheet").value;
@@ -356,12 +365,17 @@
     return;
   }
 
-  // 👇 Resto de tu código actual va aquí, sin tocar nada
   const hoja = document.getElementById("sheet").value;
   const columna = document.getElementById("column").value;
   const valor = document.getElementById("value").value;
   const canal = document.getElementById("canal").value;
   const matchType = document.getElementById("matchType").value;
+
+  // ⚠️ Validación de campo vacío
+  if (!valor.trim()) {
+    estado.innerText = "⚠️ Ingresá un valor para buscar.";
+    return;
+  }
 
   let start = Date.now();
   let timer = setInterval(() => {
@@ -390,7 +404,14 @@
   const total = resultadosFiltrados.length;
   estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
 
+  // Si no hay resultados, salir sin renderizar tabla
+  if (total === 0) {
+    table.innerHTML = "";
+    return;
+  }
+
   table.innerHTML = "";
+
 
   // Crear <thead> con <tr>
   const thead = document.createElement("thead");
