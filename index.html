@@ -68,7 +68,7 @@
       background-color: #003f7d;
     }
 
-    #estado {
+    .estado {
       font-style: italic;
       color: #555;
       margin-bottom: 10px;
@@ -157,7 +157,11 @@
         background: #f5b905;
     }
 
-    
+    .mensaje-acciones {
+        text-align: left;
+        margin-left: 15px;
+        }
+
     
     @media (max-width: 600px) {
       .container {
@@ -201,6 +205,9 @@
       </select>
     </div>      
   </div>
+  <div class="mensaje-acciones">
+    <p class="estado">Recordá precargar la hoja para mejorar tiempos de búsqueda y habilitar todas las funciones</p>
+  </div>
   <div class="acciones">
     <button onclick="window.open('https://docs.google.com/spreadsheets/d/1SBniJctF3j2nMt4M1IQWFkvjsKhCqJ_h6kqEtcvGdsg/edit', '_blank')">📄 Ver hoja</button>
     <button onclick="mostrarUltimo()">🕒 Último registro</button>
@@ -210,7 +217,7 @@
     <button class="button-buscar" onclick="buscar()">🔍 Buscar</button>
   </div>
   
-  <div id="estado"></div>
+  <div class="estado"></div>
   <table id="results"></table>
 
   <script>
@@ -480,7 +487,11 @@
     }
 
     function analizarErrores() {
-    if (!cachedData || !cachedHeaders) return alert("Primero precargá una hoja");
+        if (!cachedData || !cachedHeaders) {
+        document.getElementById("estado").innerText = "⚠️ Precargá primero una hoja para usar esta opción.";
+        return;
+        }
+
 
     const estado = document.getElementById("estado");
     const table = document.getElementById("results");
@@ -521,7 +532,11 @@
    
 
   function analizarAnulados() {
-    if (!cachedData || !cachedHeaders) return alert("Primero precargá una hoja");
+    if (!cachedData || !cachedHeaders) {
+    document.getElementById("estado").innerText = "⚠️ Precargá primero una hoja para usar esta opción.";
+    return;
+    }
+
 
     const estado = document.getElementById("estado");
     const table = document.getElementById("results");
