@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Buscador de Pagos</title>
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1995/1995616.png" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
   <style>
     * {
   margin: 0;
@@ -165,6 +167,15 @@
     .mensaje-acciones {
         text-align: left;
         margin-left: 15px;
+        }
+
+
+        th {
+        cursor: grab;
+        }
+
+        .sortable-ghost {
+        background-color: #ffeeba !important;
         }
 
     
@@ -359,74 +370,106 @@
   }, 200);
 
   const mostrarResultados = (data) => {
-    clearInterval(timer);
-    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+  clearInterval(timer);
+  const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-    const headersOrdenados = ordenarHeaders(data.headers);
-    const idxs = headersOrdenados.map(h => data.headers.indexOf(h));
-    const comercioIdx = data.headers.indexOf("Comercio");
-    const colIdx = data.headers.indexOf(columna);
-    const busqueda = valor.toLowerCase();
+  const headersOrdenados = ordenarHeaders(data.headers);
+  const idxs = headersOrdenados.map(h => data.headers.indexOf(h));
+  const comercioIdx = data.headers.indexOf("Comercio");
+  const colIdx = data.headers.indexOf(columna);
+  const busqueda = valor.toLowerCase();
 
-    const resultadosFiltrados = data.results.filter(row => {
-      const celda = (row[colIdx] || "").toString().toLowerCase();
-      const coincide = matchType === "exact" ? celda === busqueda : celda.includes(busqueda);
-      const comercioVal = (row[comercioIdx] || "").trim();
-      const canalCoincide = canal ? comercioVal === canal : true;
-      return coincide && canalCoincide;
+  const resultadosFiltrados = data.results.filter(row => {
+    const celda = (row[colIdx] || "").toString().toLowerCase();
+    const coincide = matchType === "exact" ? celda === busqueda : celda.includes(busqueda);
+    const comercioVal = (row[comercioIdx] || "").trim();
+    const canalCoincide = canal ? comercioVal === canal : true;
+    return coincide && canalCoincide;
+  });
+
+  const total = resultadosFiltrados.length;
+  estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
+
+  table.innerHTML = "";
+
+  // Crear <thead> con <tr>
+  const thead = document.createElement("thead");
+  thead.className = "draggable-header";
+  const headerRow = document.createElement("tr");
+
+  // Crear <tbody> para los datos
+  const tbody = document.createElement("tbody");
+
+  const thIndex = document.createElement("th");
+  thIndex.textContent = "#";
+  thIndex.className = "col-index";
+  headerRow.appendChild(thIndex);
+
+  headersOrdenados.forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  table.appendChild(tbody);
+
+  resultadosFiltrados.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    const tdIndex = document.createElement("td");
+    tdIndex.textContent = i + 1;
+    tdIndex.className = "col-index";
+    tr.appendChild(tdIndex);
+
+    idxs.forEach(j => {
+      const td = document.createElement("td");
+      let valor = row[j] || "";
+      if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+        valor = ajustarYFormatear(valor);
+      }
+      td.textContent = valor;
+
+      if (cachedHeaders[j] === "Estado") {
+        if (valor.toLowerCase() === "rechazado") {
+          td.style.color = "#a94442";
+          td.style.fontWeight = "bold";
+        } else if (valor.toLowerCase() === "autorizado") {
+          td.style.color = "#2e7d32";
+          td.style.fontWeight = "bold";
+        }
+      }
+
+      tr.appendChild(td);
     });
 
-    const total = resultadosFiltrados.length;
-    estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
+    tbody.appendChild(tr);
+  });
 
-    table.innerHTML = "";
-    const headerRow = document.createElement("tr");
-    const thIndex = document.createElement("th");
-    thIndex.textContent = "#";
-    thIndex.className = "col-index";
-    headerRow.appendChild(thIndex);
+  // Activar drag & drop
+  Sortable.create(headerRow, {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: function (evt) {
+      const oldIndex = evt.oldIndex - 1;
+      const newIndex = evt.newIndex - 1;
 
-    headersOrdenados.forEach(h => {
-      const th = document.createElement("th");
-      th.textContent = h;
-      headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
+      if (oldIndex < 0 || newIndex < 0) return;
 
-    resultadosFiltrados.forEach((row, i) => {
-      const tr = document.createElement("tr");
-      const tdIndex = document.createElement("td");
-      tdIndex.textContent = i + 1;
-      tdIndex.className = "col-index";
-      tr.appendChild(tdIndex);
-
-      idxs.forEach(j => {
-        const td = document.createElement("td");
-        let valor = row[j] || "";
-        if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
-          valor = ajustarYFormatear(valor);
-        }
-        td.textContent = valor;
-
-        // Colorear estado si aplica
-        if (cachedHeaders[j] === "Estado") {
-          if (valor.toLowerCase() === "rechazado") {
-            td.style.color = "#a94442";
-            td.style.fontWeight = "bold";
-          } else if (valor.toLowerCase() === "autorizado") {
-            td.style.color = "#2e7d32";
-            td.style.fontWeight = "bold";
-          }
-        }
-
-        tr.appendChild(td);
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach(row => {
+        const cells = Array.from(row.children);
+        const moved = cells.splice(oldIndex + 1, 1)[0];
+        row.insertBefore(moved, row.children[newIndex + 1] || null);
       });
-      table.appendChild(tr);
-    });
-  };
+    }
+  });
+};
+
 
   mostrarResultados({ headers: cachedHeaders, results: cachedData });
 }
+
 
   
     function mostrarUltimo() {
