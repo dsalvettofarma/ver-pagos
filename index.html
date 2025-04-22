@@ -148,8 +148,13 @@
         background: #003f80;
     }
 
+    .acciones button.button-buscar {
+        background: #ffc107;
+    }
 
-
+    .acciones button.button-buscar:hover {
+        background: #f5b905;
+    }
     @media (max-width: 600px) {
       .container {
         grid-template-columns: 1fr;
@@ -198,7 +203,7 @@
     <button onclick="analizarAnulados()">🧾 Pagos anulados</button>
     <button onclick="analizarErrores()">📊 Pagos rechazados</button>
     <button onclick="precargar()">🔄 Precargar hoja</button>
-    <button onclick="buscar()">🔍 Buscar</button>
+    <button class="button-buscar" onclick="buscar()">🔍 Buscar</button>
   </div>
   
   <div id="estado"></div>
