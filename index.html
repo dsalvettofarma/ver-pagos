@@ -286,22 +286,27 @@
     }
   
     function cargarHojas() {
-  window.handleSheets = function (data) {
-    const sel = document.getElementById("sheet");
-    sel.innerHTML = "";
+        window.handleSheets = function (data) {
+  const sel = document.getElementById("sheet");
+  sel.innerHTML = "";
 
-    data.sheets.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
-    });
+  data.sheets.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
 
-    cargarColumnas();
-    
-    // ✅ Activar botón luego de cargar hojas
-    document.getElementById("btnPrecargar").disabled = false;
-  };
+  // ✅ Seleccionar automáticamente la primera hoja y precargar
+    const hojaPrimera = data.sheets[0];
+    sel.value = hojaPrimera;
+    cargarColumnas(); 
+     precargar();
+
+  // ✅ Activar botón luego de cargar hojas
+  document.getElementById("btnPrecargar").disabled = false;
+};
+
 
   // 🔒 Desactivar botón mientras carga
   document.getElementById("btnPrecargar").disabled = true;
@@ -310,20 +315,33 @@
 
   
     function cargarColumnas() {
-      const hoja = document.getElementById("sheet").value;
-      window.handleHeaders = function (data) {
-        const sel = document.getElementById("column");
-        sel.innerHTML = "";
-        const headers = ordenarHeaders(data.headers);
-        headers.forEach(name => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          sel.appendChild(opt);
-        });
-      };
-      addScript(`${endpoint}?action=getHeaders&sheet=${encodeURIComponent(hoja)}&callback=handleHeaders`);
+        const hoja = document.getElementById("sheet").value;
+        window.handleHeaders = function (data) {
+            const sel = document.getElementById("column");
+            sel.innerHTML = "";
+
+            // 🔍 Agregamos "Buscar en todo" al inicio
+            const optAll = document.createElement("option");
+            optAll.value = "__all__";
+            optAll.textContent = "🔍 Buscar en todo";
+            sel.appendChild(optAll);
+
+            // Luego el resto de las columnas
+            const headers = ordenarHeaders(data.headers);
+            headers.forEach(name => {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+            });
+
+            // ✅ Opcional: dejar seleccionada por defecto
+            sel.value = "__all__";
+        };
+
+        addScript(`${endpoint}?action=getHeaders&sheet=${encodeURIComponent(hoja)}&callback=handleHeaders`);
     }
+
   
     function precargar() {
       const hoja = document.getElementById("sheet").value;
@@ -385,16 +403,28 @@
   const headersOrdenados = ordenarHeaders(data.headers);
   const idxs = headersOrdenados.map(h => data.headers.indexOf(h));
   const comercioIdx = data.headers.indexOf("Comercio");
-  const colIdx = data.headers.indexOf(columna);
   const busqueda = valor.toLowerCase();
 
-  const resultadosFiltrados = data.results.filter(row => {
+let resultadosFiltrados = [];
+
+if (columna === "__all__") {
+  resultadosFiltrados = data.results.filter(row => {
+    const coincide = row.some(celda => (celda || "").toString().toLowerCase().includes(busqueda));
+    const comercioVal = (row[comercioIdx] || "").trim();
+    const canalCoincide = canal ? comercioVal === canal : true;
+    return coincide && canalCoincide;
+  });
+} else {
+  const colIdx = data.headers.indexOf(columna);
+  resultadosFiltrados = data.results.filter(row => {
     const celda = (row[colIdx] || "").toString().toLowerCase();
     const coincide = matchType === "exact" ? celda === busqueda : celda.includes(busqueda);
     const comercioVal = (row[comercioIdx] || "").trim();
     const canalCoincide = canal ? comercioVal === canal : true;
     return coincide && canalCoincide;
   });
+}
+
 
   const total = resultadosFiltrados.length;
   estado.innerText = `✅ Resultado en ${elapsed}s • ${total} resultado${total !== 1 ? "s" : ""}`;
@@ -447,14 +477,19 @@
       td.textContent = valor;
 
       if (cachedHeaders[j] === "Estado") {
-        if (valor.toLowerCase() === "rechazado") {
-          td.style.color = "#a94442";
-          td.style.fontWeight = "bold";
-        } else if (valor.toLowerCase() === "autorizado") {
-          td.style.color = "#2e7d32";
-          td.style.fontWeight = "bold";
-        }
-      }
+  const estadoTexto = valor.toLowerCase();
+  if (estadoTexto === "rechazado") {
+    td.style.color = "#a94442";
+    td.style.fontWeight = "bold";
+  } else if (estadoTexto === "autorizado") {
+    td.style.color = "#2e7d32";
+    td.style.fontWeight = "bold";
+  } else if (estadoTexto === "anulado") {
+    td.style.color = "#b36b00"; // o "#555555"
+    td.style.fontWeight = "bold";
+  }
+}
+
 
       tr.appendChild(td);
     });
