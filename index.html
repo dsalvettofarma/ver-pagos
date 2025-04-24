@@ -478,6 +478,12 @@ if (columna === "__all__") {
 
       if (cachedHeaders[j] === "Estado") {
   const estadoTexto = valor.toLowerCase();
+  const fechaIdx = cachedHeaders.indexOf("Fecha");
+  const fechaAnulacionIdx = cachedHeaders.indexOf("Fecha Anulacion/Devolucion");
+  
+  const fechaPago = new Date(row[fechaIdx]);
+  const fechaAnulacion = new Date(row[fechaAnulacionIdx]);
+
   if (estadoTexto === "rechazado") {
     td.style.color = "#a94442";
     td.style.fontWeight = "bold";
@@ -485,10 +491,19 @@ if (columna === "__all__") {
     td.style.color = "#2e7d32";
     td.style.fontWeight = "bold";
   } else if (estadoTexto === "anulado") {
-    td.style.color = "#b36b00"; // o "#555555"
-    td.style.fontWeight = "bold";
+    const diferenciaMs = fechaAnulacion - fechaPago;
+    const diferenciaMin = diferenciaMs / 60000;
+    if (!isNaN(diferenciaMin) && diferenciaMin < 4) {
+      td.textContent = "Anulado automático";
+      td.style.color = "#b36b00";
+      td.style.fontWeight = "bold";
+    } else {
+      td.style.color = "#555";
+      td.style.fontWeight = "bold";
+    }
   }
 }
+
 
 
       tr.appendChild(td);
