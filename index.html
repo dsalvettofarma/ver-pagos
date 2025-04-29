@@ -232,6 +232,15 @@
   <table id="results"></table>
 
   <script>
+
+    // 🧹 Limpiar datos cacheados y localStorage al cargar la página
+window.addEventListener('load', function () {
+  localStorage.clear();
+  cachedData = null;
+  cachedHeaders = null;
+  console.log("🧹 Limpieza completa: localStorage y caché interna");
+});
+
     const endpoint = "https://script.google.com/macros/s/AKfycbxqiejSj2Y7bLLJBHf6fE_7vfotLDSukaR6evUkbFXoZwufIa1m5p3_Pc0iwpmYYJZZ/exec";
     const prioridad =   ["Id usuario", 
                         "Nombre", 
